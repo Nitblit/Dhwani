@@ -31,6 +31,7 @@ button{font:inherit;font-weight:700;color:var(--ink);background:rgba(255,255,255
 button:hover{background:rgba(255,255,255,.16)}
 button:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
 button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+button[aria-pressed="true"]{color:var(--mut);opacity:.75}
 #ctr{min-width:92px;text-align:center;font-variant-numeric:tabular-nums;color:var(--mut);white-space:nowrap}
 #seek{width:min(360px,40vw);accent-color:var(--acc);height:44px}
 #zoom{position:fixed;inset:0;background:rgba(6,12,15,.96);display:none;flex-direction:column;z-index:10}
@@ -57,6 +58,10 @@ button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2
   <button id="next" aria-label="Next page"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
   <button id="last" aria-label="Last page"><svg viewBox="0 0 24 24"><path d="M6 6l6 6-6 6M16 6v12"/></svg></button>
   <input id="seek" type="range" min="1" max="54" value="1" aria-label="Go to page">
+  <button id="snd" aria-label="Mute page flip sound" aria-pressed="false">
+    <svg id="snd-on" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+    <svg id="snd-off" viewBox="0 0 24 24" style="display:none"><path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/></svg>
+  </button>
   <button id="zb" aria-label="Zoom to read"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M11 8v6M8 11h6"/></svg><span class="hide-s">Zoom</span></button>
 </div>
 <p class="hint">Drag a corner, tap the edges or use ← → to turn pages. Double-click a page to read it up close.</p>
@@ -74,6 +79,65 @@ const imgs=[...book.querySelectorAll('img')];
 const load=i=>{const im=imgs[i];if(!im||im.src)return;im.onload=()=>im.parentNode.classList.remove('ld');im.src=src(i)};
 const near=c=>{for(let k=c-3;k<=c+6;k++)load(k)};
 near(0);
+
+// --- Procedural Page Flip Audio (Web Audio API) ---
+let actx=null,muted=false;
+try{muted=localStorage.getItem('dhwani_mute')==='1'}catch(e){}
+const sndBtn=document.getElementById('snd'),sndOn=document.getElementById('snd-on'),sndOff=document.getElementById('snd-off');
+const syncMute=()=>{
+  sndBtn.setAttribute('aria-pressed',muted);
+  sndBtn.setAttribute('aria-label',muted?'Unmute page flip sound':'Mute page flip sound');
+  sndOn.style.display=muted?'none':'block';
+  sndOff.style.display=muted?'block':'none';
+};
+syncMute();
+sndBtn.onclick=()=>{
+  muted=!muted;syncMute();
+  try{localStorage.setItem('dhwani_mute',muted?'1':'0')}catch(e){}
+  if(!muted)playFlip();
+};
+
+const playFlip=(hard=false)=>{
+  if(muted)return;
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC)return;
+  if(!actx)actx=new AC();
+  if(actx.state==='suspended')actx.resume();
+
+  const t=actx.currentTime,dur=hard?.34:.26;
+  const len=Math.floor(actx.sampleRate*dur);
+  const buf=actx.createBuffer(1,len,actx.sampleRate);
+  const data=buf.getChannelData(0);
+  for(let i=0;i<len;i++)data[i]=Math.random()*2-1;
+
+  const noise=actx.createBufferSource();
+  noise.buffer=buf;
+
+  // Bandpass filter sweeps upward to mimic paper sliding and lifting
+  const filter=actx.createBiquadFilter();
+  filter.type='bandpass';
+  const pitch=0.92+Math.random()*0.16; // subtle natural variation per page
+  filter.frequency.setValueAtTime((hard?480:720)*pitch,t);
+  filter.frequency.exponentialRampToValueAtTime((hard?1500:2400)*pitch,t+dur*0.65);
+  filter.frequency.exponentialRampToValueAtTime(650*pitch,t+dur);
+  filter.Q.value=hard?1.2:1.6;
+
+  // Envelope: soft lift -> crisp mid-turn swoosh -> gentle settle
+  const gain=actx.createGain();
+  const peak=hard?.24:.18;
+  gain.gain.setValueAtTime(0.001,t);
+  gain.gain.linearRampToValueAtTime(peak*0.45,t+0.03);
+  gain.gain.linearRampToValueAtTime(peak,t+dur*0.55);
+  gain.gain.exponentialRampToValueAtTime(0.001,t+dur);
+
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(actx.destination);
+  noise.start(t);
+  noise.stop(t+dur);
+};
+// --------------------------------------------------
+
 const ctr=document.getElementById('ctr'),seek=document.getElementById('seek');
 let pf=null;
 const cur=()=>pf?pf.getCurrentPageIndex():0;
@@ -91,16 +155,22 @@ if(typeof St==='undefined'){
   pf=new St.PageFlip(book,{width:620,height:877,size:'stretch',minWidth:260,maxWidth:1100,minHeight:368,maxHeight:1556,showCover:true,maxShadowOpacity:.45,mobileScrollSupport:true,flippingTime:700,usePortrait:true,startPage:start(),autoSize:true});
   pf.loadFromHTML(book.querySelectorAll('.page'));
   pf.on('flip',e=>show(e.data));
+  pf.on('changeState',e=>{
+    if(e.data==='flipping'){
+      const idx=cur();
+      playFlip(idx===0||idx>=N-2); // deeper thud for hard covers
+    }
+  });
   pf.on('changeOrientation',()=>show(cur()));
   show(start());near(start());
 }
 const go=i=>pf&&pf.flip(Math.max(0,Math.min(N-1,i)));
 document.getElementById('prev').onclick=()=>pf&&pf.flipPrev();
 document.getElementById('next').onclick=()=>pf&&pf.flipNext();
-document.getElementById('first').onclick=()=>{if(pf){pf.turnToPage(0);show(0)}};
-document.getElementById('last').onclick=()=>{if(pf){pf.turnToPage(N-1);show(N-1)}};
+document.getElementById('first').onclick=()=>{if(pf&&cur()!==0){playFlip(true);pf.turnToPage(0);show(0)}};
+document.getElementById('last').onclick=()=>{if(pf&&cur()!==N-1){playFlip(true);pf.turnToPage(N-1);show(N-1)}};
 seek.oninput=()=>{near(seek.value-1);ctr.textContent=seek.value+' / '+N};
-seek.onchange=()=>{if(pf){pf.turnToPage(seek.value-1);show(seek.value-1)}};
+seek.onchange=()=>{if(pf){playFlip();pf.turnToPage(seek.value-1);show(seek.value-1)}};
 const zoom=document.getElementById('zoom'),zbody=document.getElementById('zbody'),zl=document.getElementById('zl');
 const openZoom=()=>{
   const i=cur(),portrait=!pf||pf.getOrientation()==='portrait';
@@ -129,3 +199,4 @@ document.getElementById('fs').onclick=async()=>{
 }
 </script>
 </body>
+</html>
