@@ -6,6 +6,9 @@
 <title>Dhwani — IEEE ComSoc BMSITM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="p-01.jpg" fetchpriority="high">
+<link rel="preload" as="image" href="p-02.jpg">
+<link rel="preload" as="image" href="p-03.jpg">
 <style>
 /* VOICE: quiet, celebratory reading room for a souvenir volume
    IDEA: a printed magazine lying open on a desk
@@ -19,66 +22,177 @@ body{margin:0;background:radial-gradient(120% 80% at 50% 40%,var(--bg2),var(--bg
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px max(3vw,14px);flex-wrap:wrap}
 h1{margin:0;font-size:clamp(18px,2.4vw,24px);font-weight:800;letter-spacing:.01em}
 h1 span{color:var(--mut);font-weight:500;font-size:.72em;margin-inline-start:8px}
-main{flex:1;display:flex;align-items:center;justify-content:center;padding:4px max(3vw,10px)}
+.head-actions{display:flex;align-items:center;gap:8px}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:4px max(3vw,10px);position:relative}
 #wrap{width:min(94vw,calc((100vh - 150px) / 1.4142 * 2));max-width:1500px}
 #book{margin:0 auto}
 .page{background:#fff;overflow:hidden}
 .page img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
 .page.ld{background:#fff linear-gradient(90deg,#f1f3f4,#fff,#f1f3f4);background-size:200% 100%;animation:sh 1.2s linear infinite}
 @keyframes sh{to{background-position:-200% 0}}
-.bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px max(3vw,14px) 16px;flex-wrap:wrap}
-button{font:inherit;font-weight:700;color:var(--ink);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:999px;min-width:44px;height:44px;padding:0 14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px max(3vw,14px) 16px;flex-wrap:wrap}
+button{font:inherit;font-weight:700;color:var(--ink);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:999px;min-width:44px;height:44px;padding:0 14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:background .15s,border-color .15s}
 button:hover{background:rgba(255,255,255,.16)}
 button:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
-button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-button[aria-pressed="true"]{color:var(--mut);opacity:.75}
-#ctr{min-width:92px;text-align:center;font-variant-numeric:tabular-nums;color:var(--mut);white-space:nowrap}
-#seek{width:min(360px,40vw);accent-color:var(--acc);height:44px}
-#zoom{position:fixed;inset:0;background:rgba(6,12,15,.96);display:none;flex-direction:column;z-index:10}
-#zoom.on{display:flex}
-#zoom .top{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;color:var(--mut)}
-#zbody{flex:1;overflow:auto;display:flex;gap:10px;justify-content:center;align-items:flex-start;padding:0 10px 20px}
-#zbody img{width:min(100%,1100px);height:auto;background:#fff}
-#zbody.two img{width:min(49%,900px)}
-.hint{color:var(--mut);font-size:13px;text-align:center;margin:0 0 10px}
-@media(max-width:600px){#seek{width:100%;order:9}#wrap{width:94vw}.hide-s{display:none}#zbody.two{flex-direction:column;align-items:center}#zbody.two img{width:100%}}
-@media(prefers-reduced-motion:reduce){.page.ld{animation:none}}
+button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+button[aria-pressed="true"]{color:var(--mut);opacity:.78}
+button.active{background:rgba(63,162,230,.24);border-color:var(--acc);color:#fff}
+
+/* Clickable Page Counter / Direct Jump */
+#ctr-wrap{display:inline-flex;align-items:center;justify-content:center;min-width:96px;height:44px;border-radius:999px;padding:0 10px;cursor:pointer;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap;border:1px solid transparent}
+#ctr-wrap:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:var(--ink)}
+#jump-in{width:64px;height:34px;background:rgba(0,0,0,.35);border:1px solid var(--acc);border-radius:999px;color:var(--ink);font:inherit;font-weight:700;text-align:center;display:none}
+#jump-in::-webkit-inner-spin-button,#jump-in::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+#seek{width:min(300px,34vw);accent-color:var(--acc);height:44px}
+.hint{color:var(--mut);font-size:13px;text-align:center;margin:0 0 10px;padding:0 12px}
+
+/* Slideshow Progress Bar */
+#auto-bar{position:fixed;top:0;left:0;height:3px;width:0;background:var(--acc);z-index:20;pointer-events:none}
+#auto-bar.run{animation:autobar 6s linear infinite}
+@keyframes autobar{from{width:0}to{width:100%}}
+
+/* Overlays (Zoom & Thumbnail Grid) */
+.modal{position:fixed;inset:0;background:rgba(6,12,15,.96);display:none;flex-direction:column;z-index:30}
+.modal.on{display:flex}
+.modal .top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px max(3vw,16px);border-bottom:1px solid rgba(255,255,255,.1);color:var(--mut)}
+.modal .top strong{color:var(--ink);font-weight:800}
+.modal .top-actions{display:flex;align-items:center;gap:8px}
+
+/* Enhanced Zoom Body */
+#zbody{flex:1;overflow:auto;display:flex;gap:12px;justify-content:center;align-items:flex-start;padding:16px;touch-action:pan-x pan-y pinch-zoom;cursor:grab}
+#zbody.dragging{cursor:grabbing;user-select:none}
+#zbody img{width:min(100%,1050px);height:auto;background:#fff;border-radius:2px;transition:width .18s ease}
+#zbody.two img{width:min(49%,860px)}
+#zbody.z15 img{width:min(150%,1575px)}
+#zbody.two.z15 img{width:min(73.5%,1290px)}
+#zbody.z20 img{width:min(200%,2100px)}
+#zbody.two.z20 img{width:min(98%,1720px)}
+
+/* Thumbnail Grid Drawer */
+#gbody{flex:1;overflow:auto;padding:20px max(3vw,20px) 32px;display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:18px;align-content:start}
+.thumb{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.12);border-radius:10px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform .15s,border-color .15s,background .15s;height:auto}
+.thumb:hover{transform:translateY(-2px);background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.35)}
+.thumb.cur{border-color:var(--acc);background:rgba(63,162,230,.18)}
+.thumb img{width:100%;aspect-ratio:1/1.4142;object-fit:cover;border-radius:5px;background:#1b2e36}
+.thumb span{font-size:12px;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.thumb.cur span{color:#fff}
+
+/* Toast Notification */
+#toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(12px);background:#163440;color:#fff;border:1px solid var(--acc);padding:9px 18px;border-radius:999px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:720px){
+  #seek{width:100%;order:9}
+  #wrap{width:94vw}
+  .hide-s{display:none}
+  #zbody.two{flex-direction:column;align-items:center}
+  #zbody.two img{width:100%}
+  #zbody.two.z15 img{width:150%}
+  #zbody.two.z20 img{width:200%}
+  #gbody{grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:12px}
+}
+@media(prefers-reduced-motion:reduce){.page.ld,#auto-bar.run{animation:none}}
 </style>
 </head>
 <body>
+<div id="auto-bar" aria-hidden="true"></div>
 <header>
   <h1>Dhwani <span class="hide-s">IEEE ComSoc Student Branch Chapter, BMSITM</span></h1>
-  <button id="fs" aria-label="Full screen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="hide-s">Full screen</span></button>
+  <div class="head-actions">
+    <button id="share" aria-label="Share current page">
+      <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+      <span class="hide-s">Share</span>
+    </button>
+    <button id="fs" aria-label="Full screen">
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      <span class="hide-s">Full screen</span>
+    </button>
+  </div>
 </header>
+
 <main><div id="wrap"><div id="book"></div></div></main>
+
 <div class="bar">
   <button id="first" aria-label="First page"><svg viewBox="0 0 24 24"><path d="M18 18l-6-6 6-6M8 6v12"/></svg></button>
   <button id="prev" aria-label="Previous page"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
-  <span id="ctr">1 / 54</span>
+
+  <div id="ctr-wrap" title="Click to jump to a page number" role="button" tabindex="0" aria-label="Current page, click to enter page number">
+    <span id="ctr">1 / 54</span>
+    <input id="jump-in" type="number" min="1" max="54" aria-label="Jump to page number">
+  </div>
+
   <button id="next" aria-label="Next page"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
   <button id="last" aria-label="Last page"><svg viewBox="0 0 24 24"><path d="M6 6l6 6-6 6M16 6v12"/></svg></button>
   <input id="seek" type="range" min="1" max="54" value="1" aria-label="Go to page">
+
+  <button id="gb" aria-label="All pages grid">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span class="hide-s">Pages</span>
+  </button>
+
+  <button id="auto" aria-label="Auto-play slideshow">
+    <svg id="auto-play-ic" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+    <svg id="auto-pause-ic" viewBox="0 0 24 24" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    <span class="hide-s" id="auto-lbl">Auto</span>
+  </button>
+
   <button id="snd" aria-label="Mute page flip sound" aria-pressed="false">
     <svg id="snd-on" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
     <svg id="snd-off" viewBox="0 0 24 24" style="display:none"><path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/></svg>
   </button>
-  <button id="zb" aria-label="Zoom to read"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M11 8v6M8 11h6"/></svg><span class="hide-s">Zoom</span></button>
+
+  <button id="zb" aria-label="Zoom to read">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M11 8v6M8 11h6"/></svg>
+    <span class="hide-s">Zoom</span>
+  </button>
 </div>
-<p class="hint">Drag a corner, tap the edges or use ← → to turn pages. Double-click a page to read it up close.</p>
-<div id="zoom" role="dialog" aria-label="Zoomed pages">
-  <div class="top"><span id="zl"></span><button id="zx" aria-label="Close zoom"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+
+<p class="hint">Drag a corner, tap the edges or use ← → to turn pages. Double-click a page to read up close, or press G for all pages.</p>
+
+<!-- Zoom Modal -->
+<div id="zoom" class="modal" role="dialog" aria-label="Zoomed pages">
+  <div class="top">
+    <strong id="zl">Page 1</strong>
+    <div class="top-actions">
+      <button id="zscale" aria-label="Toggle magnification">1.0×</button>
+      <button id="zx" aria-label="Close zoom"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </div>
   <div id="zbody"></div>
 </div>
+
+<!-- Thumbnail Grid Drawer -->
+<div id="grid" class="modal" role="dialog" aria-label="All pages overview">
+  <div class="top">
+    <strong>Contents &amp; Pages (54)</strong>
+    <button id="gx" aria-label="Close page grid"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div id="gbody"></div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 <script>
 {
 const N=54,src=i=>'p-'+String(i+1).padStart(2,'0')+'.jpg';
 const book=document.getElementById('book');
-book.innerHTML=Array.from({length:N},(_,i)=>`<div class="page ld" data-density="${i===0||i===N-1?'hard':'soft'}"><img alt="Page ${i+1}" data-i="${i}" draggable="false"></div>`).join('');
+book.innerHTML=Array.from({length:N},(_,i)=>`<div class="page ld" data-density="${i===0||i===N-1?'hard':'soft'}"><img alt="Page ${i+1}" data-i="${i}" ${i<3?'fetchpriority="high"':''} draggable="false"></div>`).join('');
 const imgs=[...book.querySelectorAll('img')];
 const load=i=>{const im=imgs[i];if(!im||im.src)return;im.onload=()=>im.parentNode.classList.remove('ld');im.src=src(i)};
 const near=c=>{for(let k=c-3;k<=c+6;k++)load(k)};
 near(0);
+
+// --- Toast Helper ---
+const toast=document.getElementById('toast');
+let toastTimer=null;
+const notify=msg=>{
+  toast.textContent=msg;
+  toast.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toast.classList.remove('on'),2400);
+};
 
 // --- Procedural Page Flip Audio (Web Audio API) ---
 let actx=null,muted=false;
@@ -113,16 +227,14 @@ const playFlip=(hard=false)=>{
   const noise=actx.createBufferSource();
   noise.buffer=buf;
 
-  // Bandpass filter sweeps upward to mimic paper sliding and lifting
   const filter=actx.createBiquadFilter();
   filter.type='bandpass';
-  const pitch=0.92+Math.random()*0.16; // subtle natural variation per page
+  const pitch=0.92+Math.random()*0.16;
   filter.frequency.setValueAtTime((hard?480:720)*pitch,t);
   filter.frequency.exponentialRampToValueAtTime((hard?1500:2400)*pitch,t+dur*0.65);
   filter.frequency.exponentialRampToValueAtTime(650*pitch,t+dur);
   filter.Q.value=hard?1.2:1.6;
 
-  // Envelope: soft lift -> crisp mid-turn swoosh -> gentle settle
   const gain=actx.createGain();
   const peak=hard?.24:.18;
   gain.gain.setValueAtTime(0.001,t);
@@ -136,19 +248,26 @@ const playFlip=(hard=false)=>{
   noise.start(t);
   noise.stop(t+dur);
 };
-// --------------------------------------------------
 
+// --- Navigation & Page State ---
 const ctr=document.getElementById('ctr'),seek=document.getElementById('seek');
 let pf=null;
 const cur=()=>pf?pf.getCurrentPageIndex():0;
-const show=i=>{
-  const portrait=pf&&pf.getOrientation()==='portrait';
+const spreadRange=i=>{
+  const portrait=!pf||pf.getOrientation()==='portrait';
   let a=i+1,t=a;
   if(!portrait&&i>0&&i<N-1){a=i%2?i+1:i;t=Math.min(a+1,N)}
-  ctr.textContent=(a===t?a:a+'–'+t)+' / '+N;seek.value=i+1;near(i);
+  return [a,t];
+};
+const show=i=>{
+  const [a,t]=spreadRange(i);
+  ctr.textContent=(a===t?a:a+'–'+t)+' / '+N;
+  seek.value=i+1;
+  near(i);
   try{if(i>0)history.replaceState(null,'','#p'+(i+1));else history.replaceState(null,'',location.pathname)}catch(e){}
 };
 const start=()=>{const m=/^#p(\d+)$/.exec(location.hash);return m?Math.min(Math.max(+m[1],1),N)-1:0};
+
 if(typeof St==='undefined'){
   book.style.display='grid';book.style.gap='12px';imgs.forEach((_,i)=>load(i));
 }else{
@@ -158,41 +277,194 @@ if(typeof St==='undefined'){
   pf.on('changeState',e=>{
     if(e.data==='flipping'){
       const idx=cur();
-      playFlip(idx===0||idx>=N-2); // deeper thud for hard covers
+      playFlip(idx===0||idx>=N-2);
     }
+    if(e.data==='user_fold')stopAuto();
   });
   pf.on('changeOrientation',()=>show(cur()));
   show(start());near(start());
 }
-const go=i=>pf&&pf.flip(Math.max(0,Math.min(N-1,i)));
-document.getElementById('prev').onclick=()=>pf&&pf.flipPrev();
-document.getElementById('next').onclick=()=>pf&&pf.flipNext();
-document.getElementById('first').onclick=()=>{if(pf&&cur()!==0){playFlip(true);pf.turnToPage(0);show(0)}};
-document.getElementById('last').onclick=()=>{if(pf&&cur()!==N-1){playFlip(true);pf.turnToPage(N-1);show(N-1)}};
-seek.oninput=()=>{near(seek.value-1);ctr.textContent=seek.value+' / '+N};
-seek.onchange=()=>{if(pf){playFlip();pf.turnToPage(seek.value-1);show(seek.value-1)}};
-const zoom=document.getElementById('zoom'),zbody=document.getElementById('zbody'),zl=document.getElementById('zl');
+
+const jumpTo=idx=>{
+  const target=Math.max(0,Math.min(N-1,idx));
+  if(!pf||cur()===target)return;
+  playFlip(target===0||target===N-1);
+  pf.turnToPage(target);
+  show(target);
+};
+
+// --- Auto-Play Slideshow ---
+let autoTimer=null;
+const autoBtn=document.getElementById('auto'),autoPlayIc=document.getElementById('auto-play-ic'),autoPauseIc=document.getElementById('auto-pause-ic'),autoLbl=document.getElementById('auto-lbl'),autoBar=document.getElementById('auto-bar');
+const stopAuto=()=>{
+  if(!autoTimer)return;
+  clearInterval(autoTimer);autoTimer=null;
+  autoBtn.classList.remove('active');
+  autoPlayIc.style.display='block';autoPauseIc.style.display='none';
+  autoLbl.textContent='Auto';
+  autoBar.classList.remove('run');
+};
+const startAuto=()=>{
+  stopAuto();
+  autoBtn.classList.add('active');
+  autoPlayIc.style.display='none';autoPauseIc.style.display='block';
+  autoLbl.textContent='Pause';
+  autoBar.classList.add('run');
+  autoTimer=setInterval(()=>{
+    if(!pf)return;
+    if(cur()>=N-1)jumpTo(0);
+    else pf.flipNext();
+  },6000);
+};
+autoBtn.onclick=()=>autoTimer?stopAuto():startAuto();
+
+// --- Controls ---
+document.getElementById('prev').onclick=()=>{stopAuto();pf&&pf.flipPrev()};
+document.getElementById('next').onclick=()=>{stopAuto();pf&&pf.flipNext()};
+document.getElementById('first').onclick=()=>{stopAuto();jumpTo(0)};
+document.getElementById('last').onclick=()=>{stopAuto();jumpTo(N-1)};
+seek.oninput=()=>{stopAuto();near(seek.value-1);ctr.textContent=seek.value+' / '+N};
+seek.onchange=()=>{stopAuto();jumpTo(seek.value-1)};
+
+// --- Direct Page Number Input ---
+const ctrWrap=document.getElementById('ctr-wrap'),jumpIn=document.getElementById('jump-in');
+const openJump=()=>{
+  stopAuto();
+  ctr.style.display='none';
+  jumpIn.style.display='block';
+  jumpIn.value=cur()+1;
+  jumpIn.focus();jumpIn.select();
+};
+const closeJump=(apply=false)=>{
+  if(apply){
+    const val=parseInt(jumpIn.value,10);
+    if(!isNaN(val))jumpTo(val-1);
+  }
+  jumpIn.style.display='none';
+  ctr.style.display='inline';
+};
+ctrWrap.onclick=()=>{if(jumpIn.style.display!=='block')openJump()};
+ctrWrap.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&jumpIn.style.display!=='block'){e.preventDefault();openJump()}};
+jumpIn.onkeydown=e=>{
+  if(e.key==='Enter'){e.preventDefault();closeJump(true)}
+  else if(e.key==='Escape'){e.preventDefault();closeJump(false)}
+};
+jumpIn.onblur=()=>closeJump(true);
+
+// --- Share Current Spread ---
+document.getElementById('share').onclick=async()=>{
+  const i=cur();
+  const [a,t]=spreadRange(i);
+  const label=a===t?`Page ${a}`:`Pages ${a}–${t}`;
+  const url=location.origin+location.pathname+(i>0?'#p'+(i+1):'');
+  if(navigator.share){
+    try{await navigator.share({title:`Dhwani — ${label}`,text:`Check out ${label} of Dhwani (IEEE ComSoc BMSITM)`,url});return}catch(e){if(e.name==='AbortError')return}
+  }
+  try{
+    await navigator.clipboard.writeText(url);
+    notify(`Link copied for ${label}`);
+  }catch(e){
+    notify(`Share URL: ${url}`);
+  }
+};
+
+// --- Enhanced Zoom Modal (1x / 1.5x / 2x + Drag-to-Pan) ---
+const zoom=document.getElementById('zoom'),zbody=document.getElementById('zbody'),zl=document.getElementById('zl'),zscale=document.getElementById('zscale');
+const levels=[{cls:'',lbl:'1.0×'},{cls:'z15',lbl:'1.5×'},{cls:'z20',lbl:'2.0×'}];
+let zIdx=0;
+const applyZoomLevel=()=>{
+  zbody.classList.remove('z15','z20');
+  if(levels[zIdx].cls)zbody.classList.add(levels[zIdx].cls);
+  zscale.textContent=levels[zIdx].lbl;
+};
+zscale.onclick=()=>{zIdx=(zIdx+1)%levels.length;applyZoomLevel()};
+
 const openZoom=()=>{
+  stopAuto();
   const i=cur(),portrait=!pf||pf.getOrientation()==='portrait';
   let list=[i];
   if(!portrait&&i>0&&i<N-1){const a=i%2?i:i-1;list=[a,a+1].filter(x=>x<N)}
+  zIdx=0;
   zbody.className=list.length>1?'two':'';
-  zbody.innerHTML=list.map(k=>`<img src="${src(k)}" alt="Page ${k+1}">`).join('');
-  zl.textContent='Page '+list.map(k=>k+1).join('–');zoom.classList.add('on');zbody.scrollTop=0;
+  zscale.textContent='1.0×';
+  zbody.innerHTML=list.map(k=>`<img src="${src(k)}" alt="Page ${k+1}" draggable="false">`).join('');
+  zl.textContent='Page '+list.map(k=>k+1).join('–');
+  zoom.classList.add('on');
+  zbody.scrollTop=0;zbody.scrollLeft=0;
 };
 const closeZoom=()=>zoom.classList.remove('on');
 document.getElementById('zb').onclick=openZoom;
 document.getElementById('zx').onclick=closeZoom;
 book.addEventListener('dblclick',openZoom);
-zoom.addEventListener('click',e=>{if(e.target===zbody)closeZoom()});
-document.addEventListener('keydown',e=>{
-  if(zoom.classList.contains('on')){if(e.key==='Escape')closeZoom();return}
-  if(e.target===seek)return;
-  if(e.key==='ArrowRight'||e.key==='PageDown')pf&&pf.flipNext();
-  else if(e.key==='ArrowLeft'||e.key==='PageUp')pf&&pf.flipPrev();
-  else if(e.key==='Home')go(0);
-  else if(e.key==='End')go(N-1);
+zbody.addEventListener('dblclick',()=>{zIdx=zIdx===0?1:0;applyZoomLevel()});
+
+// Drag-to-pan inside Zoom modal
+let isPan=false,panMoved=false,sx=0,sy=0,sl=0,st=0;
+zbody.addEventListener('mousedown',e=>{
+  if(e.button!==0)return;
+  isPan=true;panMoved=false;sx=e.pageX;sy=e.pageY;sl=zbody.scrollLeft;st=zbody.scrollTop;
+  zbody.classList.add('dragging');
 });
+window.addEventListener('mousemove',e=>{
+  if(!isPan)return;
+  const dx=e.pageX-sx,dy=e.pageY-sy;
+  if(Math.abs(dx)>4||Math.abs(dy)>4)panMoved=true;
+  zbody.scrollLeft=sl-dx;zbody.scrollTop=st-dy;
+});
+window.addEventListener('mouseup',()=>{isPan=false;zbody.classList.remove('dragging')});
+zbody.addEventListener('click',e=>{if(e.target===zbody&&!panMoved)closeZoom()});
+
+// --- Visual Thumbnail Grid Drawer ---
+const grid=document.getElementById('grid'),gbody=document.getElementById('gbody');
+let gridBuilt=false;
+const openGrid=()=>{
+  stopAuto();
+  if(!gridBuilt){
+    gbody.innerHTML=Array.from({length:N},(_,i)=>{
+      const lbl=i===0?'Cover (1)':i===N-1?`Back (${N})`:`Page ${i+1}`;
+      return `<button type="button" class="thumb" data-p="${i}"><img src="${src(i)}" alt="${lbl}" loading="lazy"><span>${lbl}</span></button>`;
+    }).join('');
+    gbody.onclick=e=>{
+      const btn=e.target.closest('.thumb');
+      if(!btn)return;
+      closeGrid();
+      jumpTo(+btn.dataset.p);
+    };
+    gridBuilt=true;
+  }
+  const [a,t]=spreadRange(cur());
+  gbody.querySelectorAll('.thumb').forEach((el,idx)=>{
+    el.classList.toggle('cur',idx+1>=a&&idx+1<=t);
+  });
+  grid.classList.add('on');
+  const activeThumb=gbody.querySelector('.thumb.cur');
+  if(activeThumb)activeThumb.scrollIntoView({block:'center',behavior:'instant'});
+};
+const closeGrid=()=>grid.classList.remove('on');
+document.getElementById('gb').onclick=openGrid;
+document.getElementById('gx').onclick=closeGrid;
+
+// --- Keyboard Shortcuts ---
+document.addEventListener('keydown',e=>{
+  if(zoom.classList.contains('on')){
+    if(e.key==='Escape')closeZoom();
+    else if(e.key==='+'||e.key==='='){zIdx=Math.min(levels.length-1,zIdx+1);applyZoomLevel()}
+    else if(e.key==='-'){zIdx=Math.max(0,zIdx-1);applyZoomLevel()}
+    return;
+  }
+  if(grid.classList.contains('on')){
+    if(e.key==='Escape'||e.key.toLowerCase()==='g')closeGrid();
+    return;
+  }
+  if(e.target===seek||e.target===jumpIn)return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'){stopAuto();pf&&pf.flipNext()}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){stopAuto();pf&&pf.flipPrev()}
+  else if(e.key==='Home'){stopAuto();jumpTo(0)}
+  else if(e.key==='End'){stopAuto();jumpTo(N-1)}
+  else if(e.key.toLowerCase()==='g')openGrid();
+});
+
+// --- Full Screen ---
 document.getElementById('fs').onclick=async()=>{
   try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch(e){}
 };
