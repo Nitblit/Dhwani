@@ -228,16 +228,21 @@ button.active{background:rgba(63,162,230,.24);border-color:var(--acc);color:var(
 {
 const N=54,src=i=>'p-'+String(i+1).padStart(2,'0')+'.jpg';
 
-// Customize these section page numbers to match your magazine's Table of Contents
-const CHAPTERS=[
-  {page:1,title:'Cover'},
-  {page:2,title:'Editorial & Messages'},
-  {page:8,title:'Chapter Office Bearers'},
-  {page:12,title:'Flagship Events'},
-  {page:24,title:'Technical Articles'},
-  {page:40,title:'Student Corner & Art'},
-  {page:50,title:'Gallery & Credits'},
-  {page:54,title:'Back Cover'}
+const CHAPTERS = [
+  { page: 1,  title: 'Cover' },
+  { page: 3,  title: 'Editorial & Contents' },
+  { page: 5,  title: 'I. Messages' },
+  { page: 11, title: 'II. The Chapter' },
+  { page: 15, title: 'III. Field Notes' },
+  { page: 22, title: 'IV. A Radio of Our Own' },
+  { page: 25, title: 'IV. IEEE Open Day' },
+  { page: 28, title: 'IV. Next-Gen Symposium' },
+  { page: 31, title: 'IV. Winter of Projects' },
+  { page: 35, title: 'IV. Reading the Rivers' },
+  { page: 38, title: 'IV. Bits2Wave' },
+  { page: 39, title: 'V. Project Skypulse' },
+  { page: 52, title: 'VI. With Gratitude' },
+  { page: 54, title: 'Back Cover' }
 ];
 
 const book=document.getElementById('book');
